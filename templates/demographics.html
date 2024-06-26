@@ -1,0 +1,68 @@
+<div id="container-instructions">
+
+	<h1>Demographics</h1>
+
+	<hr />
+
+	<div class="instructions well">
+
+	  <form id="demographicquestionnaire" action="">
+	    <div class="row question">
+	      <p>Gender (Type 'NA' if you choose not to disclose):
+			<input type="text" name="gender" id="gender" size="50"/></p>
+	      <p>Age (Must be 18 or older to participate):
+	      <input type="number" name="age" id="age"/></p>
+		  <p>Occupation/Field of Study:
+	      <input type="text" name="occupation_FoS" id="occupation_FoS" size="50"/></p>
+		  <p>Languages Spoken (List the languages):
+	      <input type="text" name="languages" id="languages" size="50"/></p>
+		  
+              <p>How much prior experience do you have with robots and artificial intelligence (AI)?:</p>
+	      <input type="radio" name="experience" value="1">1 - I have no prior experience with robots and AI.</input><br/>
+              <input type="radio" name="experience" value="2">2</input><br/>
+              <input type="radio" name="experience" value="3">3 - I am interested in robotics and/or AI as a hobby, but have little formal training.</input><br/>
+              <input type="radio" name="experience" value="4">4</input><br/>
+              <input type="radio" name="experience" value="5">5 - I have some formal training in robotics and/or AI (e.g., university classes).</input><br/>
+              <input type="radio" name="experience" value="6">6</input><br/>
+              <input type="radio" name="experience" value="7">7 - I have a career in robotics and/or AI (or an equivalent level of experience).</input><br/><br/>
+			  
+              <p>How much prior experience do you have with smart speakers and digital personal assistants?:</p>
+	      <input type="radio" name="experience1" value="1">1 - I have no prior experience with smart speakers and digital personal assistants.</input><br/>
+              <input type="radio" name="experience1" value="2">2</input><br/>
+              <input type="radio" name="experience1" value="3">3 - I am an occasional casual user of smart speakers and/or digital personal assistants.</input><br/>
+              <input type="radio" name="experience1" value="4">4</input><br/>
+              <input type="radio" name="experience1" value="5">5 - I am a frequent and experienced user of smart speakers and/or digital personal assistants.</input><br/>
+              <input type="radio" name="experience1" value="6">6</input><br/>
+              <input type="radio" name="experience1" value="7">7 - I have a career in the development of smart speakers and/or digital personal assistants (or an equivalent level of experience).</input><br/><br/>
+			  
+	      <p>Prolific ID:
+	      <input type="text" name="prolific_id" id="prolific_id" size="30"/></p>
+	    </div>
+	  </form>
+
+
+	    <script type="text/javascript">
+	    //console.log(psiTurk.getInstructionIndicator())
+	    </script>
+
+	</div>
+
+	<hr />
+
+
+   <div class="instructionsnav">
+        <div class="row">
+            <div class="col-xs-2">
+            	<!-- no previous button on first screen -->
+            </div>
+            <div class="col-xs-8">
+            </div>
+            <div class="col-xs-2">
+                <button type="button" id="next" value="next" class="btn btn-primary btn-lg continue" disabled="disabled">
+                Next <span class="glyphicon glyphicon-arrow-right"></span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+</div>

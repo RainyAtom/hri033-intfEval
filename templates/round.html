@@ -1,0 +1,142 @@
+
+
+<div id="container-instructions">
+
+  <h1 id="roundNumber" name="roundNumber"></h1>
+  
+    <h3>
+		Before beginning the round/video, familiarize yourself with the initial configuration of the interface.
+		<br>
+		To begin the round, press "Play Video" below. Passively pay attention to the video shown in PanelA and any changes that may occur while you work on the task in PanelB.
+		<br><br>
+		Reminder: Individual robots are composed of multiple disparate components represented either by icons like a camera silhouette or by a label like “CameraComponent1”.
+	</h3>
+  	<hr />
+	
+     <style type="text/css">
+        .inline-block-child {
+		  display: inline-block;
+		  vertical-align:top;
+		}
+     </style>
+	
+	<div class='parent'>
+		<div class='child inline-block-child' style="border-right: 2px dotted; padding-right: 20px; text-align: right; width: 45vw;">
+			<h3>Panel A</h3>
+			  <button id="ppbutton" onclick="playPause()">Play Video</button> 
+			  <p id="time" style="display:inline">Video progress:  0:00</p>
+			<br><br>
+			<video id="roundVideo" style="margin: 0 auto; border: 9px solid #ddd; max-width: 35vw ; height: 35vw;" onplaying="showText()" onended="showQs()">
+			<source id="mp4src" src="" type="video/mp4">
+			
+			Your browser does not support HTML5 video.
+		  </video>
+
+						<script> 
+							var myVideo = document.getElementById("roundVideo");
+							var playedOnce = false;
+							function playPause() {
+							
+								if (myVideo.paused && !playedOnce){
+									myVideo.play();
+									playedOnce = true;
+								}
+							}
+
+							var gTimeFormat = function(seconds){
+								var m = Math.floor(seconds / 60);
+								var s = Math.floor(seconds - (m * 60)) < 10 ? '0' + Math.floor(seconds - (m * 60)) : Math.floor(seconds - (m * 60));
+								return m + ':' + s;
+							};
+
+							myVideo.ontimeupdate = function() {timeupdate()};
+
+							function timeupdate() {
+								document.getElementById("time").innerHTML = "Video progress:  "+gTimeFormat(myVideo.currentTime);
+							}
+							myVideo.load();
+						</script>
+						
+						<script>
+							function showQs(){
+								document.getElementById("vidQuestions").removeAttribute("hidden");
+								document.getElementById("numberQuestion").removeAttribute("hidden");
+							}
+							
+							function showText(){
+								document.getElementById("sampleText").removeAttribute("hidden");
+							}
+						</script>
+		
+			<div id="vidQuestions" name="vidQuestions" style="text-align: left;" hidden>
+				<br>
+				<br>
+				<b>The video has ended. 
+				<br>
+				To move onto the next page, you must answer all the questions below and the one in PanelB.</b>
+				<br>
+				<ol>
+					<li>Did you notice a change happen in the video? 
+						<input id="noticeYes" type="radio" name="noticeYesNo" value="yes" /><label for="noticeYes">Yes</label>
+						<input id="noticeNo" type="radio" name="noticeYesNo" value="no" /><label for="noticeNo">No</label>
+					</li>
+					<br>
+					<li>During the video, how many <b>components</b> seem to have <b>disconnected</b> from the interface? <input type="number" name="disconnectComps" id="disconnectComps"/></li>
+					<br>
+					<li>During the video, how many <b>new components</b> seem to have <b>connected</b> to the interface? <input type="number" name="connectComps" id="connectComps"/></li>
+					<br>
+					<li>Which <b>robots remained the same</b> throughout the entire video? Select all that apply. 
+							<br>
+							<form>
+								<label class="checkbox-inline">
+								  <input type="checkbox" name="robotSame" id="robotSameA" value="A">Robot A
+								</label>
+								<label class="checkbox-inline">
+								  <input type="checkbox" name="robotSame" id="robotSameB" value="B">Robot B
+								</label>
+								<label class="checkbox-inline">
+								  <input type="checkbox" name="robotSame" id="robotSameC" value="C">Robot C
+								</label>
+								<label class="checkbox-inline">
+								  <input type="checkbox" name="robotSame" id="robotSameD" value="D">Robot D
+								</label>
+						    </form>
+					</li>
+					<br>
+					<li>What difficulties did you face with the interface during the round? Any other comments about the interface shown?
+						<br>
+						<textarea id="intfComments" name="intfComments" rows="2" cols="60"></textarea>
+					</li>
+				</ol>
+			</div>
+		</div>
+		
+		<div class='child inline-block-child' style="padding-left: 20px; text-align: left; width: 45vw;">
+			<h3>Panel B</h3>
+			
+				<em>Count the number of times the letter ‘a’ appears in the text below.</em>
+				<br><br>
+			  <img src="" style="width: 40vw;" id="sampleText" hidden>
+			  <br>
+			  <p id="numberQuestion" hidden>How many <b>instances of the letter 'a'</b>? <input type="number" name="aCount" id="aCount"/></p>
+		</div>
+	</div>
+      <br><br>
+
+
+    <div class="instructionsnav">
+        <div class="row">
+            <div class="col-xs-2">
+            	<!-- no previous button -->
+            </div>
+            <div class="col-xs-8">
+            </div>
+            <div class="col-xs-2">
+                <button type="button" id="next" value="next" class="btn btn-primary btn-lg continue" disabled="disabled">
+                Next <span class="glyphicon glyphicon-arrow-right"></span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+</div>

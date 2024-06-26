@@ -1,0 +1,1835 @@
+/*
+ * Requires:
+ *     psiturk.js
+ *     utils.js
+ */
+
+// Initalize psiturk object
+var psiTurk = new PsiTurk(uniqueId, adServerLoc, mode);
+
+// Task object to keep track of the current phase
+var currentview;
+
+var mycondition = condition;  // these two variables are passed by the psiturk server process
+var mycounterbalance = counterbalance;  // they tell you which condition you have been assigned to
+
+
+// All pages to be loaded
+var pages = [
+    "instruct-1.html",
+    "demographics.html",
+    "check_video.html",
+    "intro_video.html",
+    "mdmt_starter.html",
+    "mdmt_associate.html",
+    "mdmt_bumble.html",
+    "mdmt_honey.html",
+    "mdmt_purple.html",
+    "mdmt_yellow.html",
+    "response_video.html",
+    "check_question.html",   
+];
+
+psiTurk.preloadPages(pages);
+
+var instructionPages = [ // add as a list as many pages as you like
+    "instruct-1.html"
+];
+
+// keep track of how MDMT pages are ordered
+var iter = 0;
+var square_conditions=[];
+
+
+/* * * * * * * * * * * *
+ * Latin Square setup  *
+ * 0 = Bumble          *
+ * 1 = Honey           *
+ * 2 = Purple          *
+ * 3 = Yellow          *
+ * * * * * * * * * * * */
+
+if(mycondition / 4 == 0) {
+    square_conditions = [0,1,2,3];
+}
+else if(mycondition / 4 == 1) {
+    square_conditions = [1,3,0,2];
+}
+else if(mycondition / 4 == 2) {
+    square_conditions = [2,0,3,1];
+}
+else {
+    square_conditions = [3,2,1,0];
+}   
+
+/********************
+ * HTML manipulation
+ *
+ * All HTML files in the templates directory are requested 
+ * from the server when the PsiTurk object is created above. We
+ * need code to get those pages from the PsiTurk object and 
+ * insert them into the document.
+ *
+ ********************/
+
+
+/*****************************
+ * Demographic Questionnaire *
+ *****************************/
+
+var DemoQuestionnaire = function() {
+
+    psiTurk.finishInstructions();
+    
+    var error_message = "<h1>Oops!</h1><p>Something went wrong submitting your demographic information. This might happen if you lose your internet connection. Press the button to resubmit.</p><button id='resubmit'>Resubmit</button>";
+
+    record_responses = function() {
+
+        psiTurk.recordUnstructuredData("condition",mycondition);
+
+	psiTurk.recordTrialData({'phase':'demoquestionnaire', 'status':'submit'});
+
+	$('input[name=age]').each( function(i, val) {
+	    psiTurk.recordUnstructuredData(this.id, this.value);
+	});
+
+	var radio_groups = {}
+	$(":radio").each(function(i, val){
+	    radio_groups[this.name] = true;
+	})
+
+	    for(group in radio_groups){
+	        psiTurk.recordUnstructuredData(group,$(":radio[name='"+group+"']:checked").val());
+	    }
+
+    };
+
+    prompt_resubmit = function() {
+	replaceBody(error_message);
+	$("#resubmit").click(resubmit);
+    };
+
+    resubmit = function() {
+	replaceBody("<h1>Trying to resubmit...</h1>");
+	reprompt = setTimeout(prompt_resubmit, 10000);
+	
+	psiTurk.saveData({
+	    success: function() {
+		clearInterval(reprompt); 
+                
+	    }, 
+	    error: prompt_resubmit
+	});
+    };
+    
+    // Load the questionnaire snippet 
+    psiTurk.showPage('demographics.html');
+    window.scrollTo(0, 0);
+    psiTurk.recordTrialData({'phase':'demoquestionnaire', 'status':'begin'});
+
+    var r1, r2, r3 = false;
+
+    (function() {
+	var empty = true;
+	$('#age').keyup(function() {
+
+            empty = false;
+            $('#age').each(function() {
+		if ($(this).val() == '') {
+                    empty = true;
+		}
+            });
+
+            if (empty) {
+		 r1 = false;
+		 checkenable();
+            } else {
+		r1 = true;
+		checkenable();
+            }
+	});
+    })()
+    
+    $("input[name=experience]").change(function(){
+	r2=true;
+	checkenable();
+    });
+    
+    $("input[name=gender]").change(function(){
+	r3=true;
+	checkenable();
+    });
+    
+    function checkenable(){
+	if (r1 && r2 && r3){
+	    $('#next').removeAttr('disabled');
+	}
+	else {
+	    $('#next').prop('disabled', true);
+	}
+    }
+    
+    $("#next").click(function () {
+    	record_responses();
+	currentview = new VidCheck();
+    }); 
+};
+
+
+
+/***************
+ * Video Check *
+ ***************/
+
+var VidCheck = function() {
+    
+    var error_message = "<h1>Oops!</h1><p>Something went wrong submitting your information. This might happen if you lose your internet connection. Press the button to resubmit.</p><button id='resubmit'>Resubmit</button>";
+
+    var ppcounter = 0;
+    var rscounter = 0;
+
+    record_responses = function() {
+        psiTurk.recordTrialData({'phase':'vidcheck', 'status':'submit'});	
+    };
+
+    prompt_resubmit = function() {
+        replaceBody(error_message);
+        $("#resubmit").click(resubmit);
+    };
+
+    resubmit = function() {
+        replaceBody("<h1>Trying to resubmit...</h1>");
+        reprompt = setTimeout(prompt_resubmit, 10000);
+        psiTurk.saveData({
+            success: function() {
+                clearInterval(reprompt);
+            }, 
+            error: prompt_resubmit
+        });
+    };
+    
+    // Load the questionnaire snippet 
+    psiTurk.showPage('check_video.html');
+    window.scrollTo(0, 0);
+    psiTurk.recordTrialData({'phase':'vidcheck', 'status':'begin'});
+
+    var r1, r2, r3 = false;
+   
+    function checkenable(){
+        if (r1 && r2 && r3){
+            $('#next').removeAttr('disabled');
+        }
+        else {
+            $('#next').prop('disabled', true);
+        }
+    }
+
+    $("input[name=seeword]").keyup(function(){
+        var word = $("input[name=seeword]").val();
+        word = word.toLowerCase();
+        r1 = false;
+        if (word.includes("amazing")) {
+            r1=true;
+        }
+        checkenable();
+    });
+
+    $("input[name=hearword]").keyup(function(){
+        var word = $("input[name=hearword]").val();
+        word = word.toLowerCase();
+        r2 = false;
+        if (word.includes("forest")) {
+            r2 = true;
+        }
+        checkenable();
+    });
+    
+    $("#video1").on('ended', function() {
+        psiTurk.recordTrialData({'phase':'vidcheck', 'status':'video ended'});
+        r3 = true;
+        checkenable();
+    });
+    
+    $("#ppbutton").click(function () {
+        psiTurk.recordTrialData({'phase':'vidcheck', 'status':'play/pause clicked: '+ppcounter});
+        ppcounter += 1;
+    });
+    
+    $("#rsbutton").click(function () {
+        psiTurk.recordTrialData({'phase':'vidcheck', 'status':'restart clicked: '+rscounter});
+        rscounter += 1;
+    });
+
+    $("#next").click(function () {
+        record_responses();
+        currentview = new ResponseVideo();
+    });
+};
+
+
+
+/***************
+ * Intro Video *
+ ***************/
+var IntroVideo = function() {
+
+    psiTurk.finishInstructions();
+    
+    var error_message = "<h1>Oops!</h1><p>Something went wrong submitting your information. This might happen if you lose your internet connection. Press the button to resubmit.</p><button id='resubmit'>Resubmit</button>";
+
+    var ppcounter = 0;
+    var rscounter = 0;
+
+    record_responses = function() {
+        psiTurk.recordTrialData({'phase':'intro_video', 'status':'submit'});	
+    };
+
+    prompt_resubmit = function() {
+        replaceBody(error_message);
+        $("#resubmit").click(resubmit);
+    };
+
+    resubmit = function() {
+        replaceBody("<h1>Trying to resubmit...</h1>");
+        reprompt = setTimeout(prompt_resubmit, 10000);	
+        psiTurk.saveData({
+            success: function() {
+                clearInterval(reprompt);                 
+            }, 
+            error: prompt_resubmit
+        });
+    };
+
+    // Load the questionnaire snippet 
+    psiTurk.showPage('intro_video.html');
+    window.scrollTo(0, 0);
+    psiTurk.recordTrialData({'phase':'intro_video', 'status':'begin'});
+    
+    $("#video1").on('ended', function() {
+        psiTurk.recordTrialData({'phase':'intro_video', 'status':'video ended'});
+        $('#next').removeAttr('disabled');
+    });
+    
+    $("#ppbutton").click(function () {
+        psiTurk.recordTrialData({'phase':'intro_video', 'status':'play/pause clicked: '+ppcounter});
+        ppcounter += 1;
+    });
+    
+    $("#rsbutton").click(function () {
+        psiTurk.recordTrialData({'phase':'intro_video', 'status':'restart clicked: '+rscounter});
+        rscounter += 1;
+    });
+    
+    $("#next").click(function () {
+        record_responses();	
+        currentview = new mdmt_associate();
+    });
+};
+
+
+
+/******************
+ * MDMT - Starter *
+ ******************/
+ 
+var mdmt_starter = function() {   
+    
+    var error_message = "<h1>Oops!</h1><p>Something went wrong submitting your HIT. This might happen if you lose your internet connection. Press the button to resubmit.</p><button id='resubmit'>Resubmit</button>";
+
+    record_responses = function() {
+        psiTurk.recordTrialData({'phase':'mdmt_starter', 'status':'submit'});
+        for(i=1; i<=3; i++){
+            psiTurk.recordUnstructuredData("eerieness_"+i,$("input[name='"+i+"']").val());
+        }
+	for(i=3; i<=8; i++){
+	    psiTurk.recordUnstructuredData("godspeed_"+(i-2),$("input[name='"+i+"']").val());
+	}
+    };
+
+    prompt_resubmit = function() {
+        replaceBody(error_message);
+        $("#resubmit").click(resubmit);
+    };
+
+    resubmit = function() {
+	replaceBody("<h1>Trying to resubmit...</h1>");
+	reprompt = setTimeout(prompt_resubmit, 10000);
+	
+	psiTurk.saveData({
+	    success: function() {
+		clearInterval(reprompt);                
+	    }, 
+	    error: prompt_resubmit
+	});
+    };
+
+    
+    // Load the questionnaire snippet 
+    psiTurk.showPage('mdmt_starter.html');
+
+    function hasClass(element, cls) {
+        return (' ' + element.className + ' ').indexOf(' ' + cls + ' ') > -1;
+    }
+
+    
+    
+    function checkenable(){
+        allclicked=true;
+    	$(".not-clicked").each(function(i, val){
+            allclicked=false;
+    	});
+        if(allclicked){
+	    $('#next').removeAttr('disabled');	
+        }
+    }
+
+    $(".not-clicked").click(function(e){
+    $(this).removeClass('not-clicked');
+    $(this).addClass('clicked');
+        checkenable();
+    });
+
+    window.scrollTo(0, 0);
+    psiTurk.recordTrialData({'phase':'mdmt_starter', 'status':'begin'});
+    
+    $("#next").click(function () {
+        record_responses();
+	console.log("recording...");
+	
+        if(square_conditions[iter] == 0){
+	    console.log("accessed if");
+	    currentview = new mdmt_bumble();
+	}
+	else if(square_conditions[iter] == 1){
+	    console.log("accessed if");
+	    currentview = new mdmt_honey();
+	}
+	else if(square_conditions[iter] == 2){
+	    console.log("accessed if");
+	    currentview = new mdmt_purple();
+	}
+	else if(square_conditions[iter] == 3){
+	    console.log("accessed if");
+	    currentview = new mdmt_yellow();
+	}	    
+    });
+    
+};
+
+/********************
+ * MDMT - Associate *
+ ********************/
+ 
+var mdmt_associate = function() {   
+    
+    var error_message = "<h1>Oops!</h1><p>Something went wrong submitting your HIT. This might happen if you lose your internet connection. Press the button to resubmit.</p><button id='resubmit'>Resubmit</button>";
+
+    record_responses = function() {
+        psiTurk.recordTrialData({'phase':'mdmt_associate', 'status':'submit'});
+        /*for(i=41; i<=44; i++){
+            psiTurk.recordUnstructuredData("associate_"+(i-40),$("input[name='"+i+"']").val());
+            }*/
+	
+	var i = 41;
+	psiTurk.recordUnstructuredData("purple_bot_associate_bumble",$("input[name='"+i+"']").val());
+	i += 1;
+	psiTurk.recordUnstructuredData("purple_bot_associate_honey",$("input[name='"+i+"']").val());
+	i += 1;
+	psiTurk.recordUnstructuredData("yellow_bot_associate_bumble",$("input[name='"+i+"']").val());
+	i += 1;
+	psiTurk.recordUnstructuredData("yellow_bot_associate_honey",$("input[name='"+i+"']").val());
+    };
+
+    prompt_resubmit = function() {
+        replaceBody(error_message);
+        $("#resubmit").click(resubmit);
+    };
+
+    resubmit = function() {
+	replaceBody("<h1>Trying to resubmit...</h1>");
+	reprompt = setTimeout(prompt_resubmit, 10000);
+	
+	psiTurk.saveData({
+	    success: function() {
+		clearInterval(reprompt);                
+	    }, 
+	    error: prompt_resubmit
+	});
+    };
+
+    
+    // Load the questionnaire snippet 
+    psiTurk.showPage('mdmt_associate.html');
+
+    function hasClass(element, cls) {
+        return (' ' + element.className + ' ').indexOf(' ' + cls + ' ') > -1;
+    }
+
+    
+    
+    function checkenable(){
+        allclicked=true;
+    	$(".not-clicked").each(function(i, val){
+            allclicked=false;
+    	});
+        if(allclicked){
+	    $('#next').removeAttr('disabled');	
+        }
+    }
+
+    $(".not-clicked").click(function(e){
+    $(this).removeClass('not-clicked');
+    $(this).addClass('clicked');
+        checkenable();
+    });
+
+    window.scrollTo(0, 0);
+    psiTurk.recordTrialData({'phase':'mdmt_associate', 'status':'begin'});
+
+    $("#next").click(function() {
+	console.log("clicked");
+        record_responses();
+	console.log("recorded");
+	currentview = new mdmt_starter();	
+    });    
+    
+};
+
+
+
+/*****************
+ * MDMT - Bumble *
+ *****************/
+ 
+var mdmt_bumble = function() {   
+    
+    var error_message = "<h1>Oops!</h1><p>Something went wrong submitting your HIT. This might happen if you lose your internet connection. Press the button to resubmit.</p><button id='resubmit'>Resubmit</button>";
+
+    record_responses = function() {
+        psiTurk.recordTrialData({'phase':'mdmt_bumble', 'status':'submit'});
+        for(i=9; i<=16; i++){
+	    var variable = document.getElementById(i);
+	    if(hasClass(variable, 'not-clicked')) {
+		psiTurk.recordUnstructuredData("mdmt_bumble_checkbox_"+(i-8),$("input[name='"+(i+100)+"']").val());		
+	    }
+	    else {
+		psiTurk.recordUnstructuredData("mdmt_bumble_"+(i-8),$("input[name='"+i+"']").val());		
+	    }
+        }
+    };
+
+    prompt_resubmit = function() {
+        replaceBody(error_message);
+        $("#resubmit").click(resubmit);
+    };
+
+    resubmit = function() {
+	replaceBody("<h1>Trying to resubmit...</h1>");
+	reprompt = setTimeout(prompt_resubmit, 10000);
+	
+	psiTurk.saveData({
+	    success: function() {
+		clearInterval(reprompt);                
+	    }, 
+	    error: prompt_resubmit
+	});
+    };
+     
+
+    
+    // Load the questionnaire snippet 
+    psiTurk.showPage('mdmt_bumble.html');
+
+
+
+/*
+    function handleClick(cb) {
+	document.getElementById("9").disabled = cb.checked;
+    }
+*/
+    
+    function hasClass(element, cls) {
+        return (' ' + element.className + ' ').indexOf(' ' + cls + ' ') > -1;
+    }
+
+    
+    
+    function checkenable(){
+        allclicked  = true;
+	var sliders = [true, true, true, true, true, true, true, true];
+	var checks  = [true, true, true, true, true, true, true, true];
+
+	/*   ORIGINAL - SAVE AS BACKUP       
+    	$(".not-clicked").each(function(i, val){      	    
+		allclicked=false;		    
+    	    });
+		   	    
+	     BROKEN
+	for(i=9; i <= 16; i += 1) {
+	    $("#" + i).each(function(i, val){
+		$("#check" + i).each(function(i, val){
+		    allclicked=false;
+		}
+	    });
+	  */
+
+	//check sliders
+	var s9 = document.getElementById("9");
+	if(hasClass(s9, 'not-clicked')) {
+	    sliders[0] = false;
+	}
+	
+	var s10 = document.getElementById("10");
+	if(hasClass(s10, 'not-clicked')) {
+	    sliders[1] = false;
+	}
+
+	var s11 = document.getElementById("11");
+	if(hasClass(s11, 'not-clicked')) {
+	    sliders[2] = false;
+	}
+
+	var s12 = document.getElementById("12");
+	if(hasClass(s12, 'not-clicked')) {
+	    sliders[3] = false;
+	}
+
+	var s13 = document.getElementById("13");
+	if(hasClass(s13, 'not-clicked')) {
+	    sliders[4] = false;
+	}
+
+	var s14 = document.getElementById("14");
+	if(hasClass(s14, 'not-clicked')) {
+	    sliders[5] = false;
+	}
+
+	var s15 = document.getElementById("15");
+	if(hasClass(s15, 'not-clicked')) {
+	    sliders[6] = false;
+	}
+
+	var s16 = document.getElementById("16");
+	if(hasClass(s16, 'not-clicked')) {
+	    sliders[7] = false;
+	}
+
+
+	//check checkboxes
+	if(document.getElementById("check9").checked == false) {
+	    checks[0] = false;
+	}
+	else {
+	    $("#9").removeClass('clicked');
+	    $("#9").addClass('not-clicked');
+	}
+	    
+	if(document.getElementById("check10").checked == false) {
+	    checks[1] = false;
+	}
+	else {
+	    $("#10").removeClass('clicked');
+	    $("#10").addClass('not-clicked');
+	}
+
+	if(document.getElementById("check11").checked == false) {
+	    checks[2] = false;
+	}
+	else {
+	    $("#11").removeClass('clicked');
+	    $("#11").addClass('not-clicked');
+	}
+
+	if(document.getElementById("check12").checked == false) {
+	    checks[3] = false;
+	}
+	else {
+	    $("#12").removeClass('clicked');
+	    $("#12").addClass('not-clicked');
+	}
+
+	if(document.getElementById("check13").checked == false) {
+	    checks[4] = false;
+	}
+	else {
+	    $("#13").removeClass('clicked');
+	    $("#13").addClass('not-clicked');
+	}
+
+	if(document.getElementById("check14").checked == false) {
+	    checks[5] = false;
+	}
+	else {
+	    $("#14").removeClass('clicked');
+	    $("#14").addClass('not-clicked');
+	}
+	
+	if(document.getElementById("check15").checked == false) {
+	    checks[6] = false;
+	}
+	else {
+	    $("#15").removeClass('clicked');
+	    $("#15").addClass('not-clicked');
+	}
+
+	if(document.getElementById("check16").checked == false) {
+	    checks[7] = false;
+	}
+	else {
+	    $("#16").removeClass('clicked');
+	    $("#16").addClass('not-clicked');
+	}
+
+
+	for(i=0; i<8; i+=1) {
+	    if(sliders[i] == false && checks[i] == false)
+		allclicked = false;
+	}
+	
+        if(allclicked){
+	    $('#next').removeAttr('disabled');	
+        }
+	else {
+	    $('#next').attr('disabled', 'disabled');			   
+	}	
+    }// end of checkenable
+
+    var cards;
+    
+    $(document).ready(function() {
+	cards = $(".row-question");
+
+	console.log("cards created");
+	$(".row-question").each(function() {
+	    console.log("element");
+	});
+    
+	for(var i = 0; i < cards.length; i++) {
+	    console.log("randomizing round " + i);
+	    var target = Math.floor(Math.random() * cards.length -1) + 1;
+	    var target2 = Math.floor(Math.random() * cards.length -1) +1;
+	    cards.eq(target).before(cards.eq(target2));
+	}
+    });  
+
+    $(".not-clicked").click(function(e){
+	$(this).removeClass('not-clicked');
+	$(this).addClass('clicked');
+        checkenable();
+    });
+
+    $(".check").click(function(e){
+	checkenable();
+    });
+
+    window.scrollTo(0, 0);
+    psiTurk.recordTrialData({'phase':'mdmt_bumble', 'status':'begin'});
+
+    $("#next").click(function () {
+        record_responses();
+	iter += 1;
+	
+	if(iter >= 4){
+	    currentview = new CheckQuestion();
+	}
+        else if(square_conditions[iter] == 0){
+	    currentview = new mdmt_bumble();
+	}
+	else if(square_conditions[iter] == 1){
+	    currentview = new mdmt_honey();
+	}
+	else if(square_conditions[iter] == 2){
+	    currentview = new mdmt_purple();
+	}
+	else if(square_conditions[iter] == 3){
+	    currentview = new mdmt_yellow();
+	}	    
+    });
+    
+};
+
+
+
+/****************
+ * MDMT - Honey *
+ ****************/
+ 
+var mdmt_honey = function() {   
+    
+    var error_message = "<h1>Oops!</h1><p>Something went wrong submitting your HIT. This might happen if you lose your internet connection. Press the button to resubmit.</p><button id='resubmit'>Resubmit</button>";
+
+    record_responses = function() {
+        psiTurk.recordTrialData({'phase':'mdmt_honey', 'status':'submit'});
+
+	for(i=17; i<=24; i++){
+	    var variable = document.getElementById(i);
+	    if(hasClass(variable, 'not-clicked')) {
+		psiTurk.recordUnstructuredData("mdmt_honey_checkbox_"+(i-16),$("input[name='"+(i+100)+"']").val());
+	    }
+	    else {
+		psiTurk.recordUnstructuredData("mdmt_honey_"+(i-16),$("input[name='"+i+"']").val());
+	    }
+        }	
+    };
+
+    prompt_resubmit = function() {
+        replaceBody(error_message);
+        $("#resubmit").click(resubmit);
+    };
+
+    resubmit = function() {
+	replaceBody("<h1>Trying to resubmit...</h1>");
+	reprompt = setTimeout(prompt_resubmit, 10000);
+	
+	psiTurk.saveData({
+	    success: function() {
+		clearInterval(reprompt);                
+	    }, 
+	    error: prompt_resubmit
+	});
+    };
+
+    
+    // Load the questionnaire snippet 
+    psiTurk.showPage('mdmt_honey.html');
+
+    function hasClass(element, cls) {
+        return (' ' + element.className + ' ').indexOf(' ' + cls + ' ') > -1;
+    }    
+    
+    function checkenable(){
+        allclicked  = true;
+	var sliders = [true, true, true, true, true, true, true, true];
+   	var checks  = [true, true, true, true, true, true, true, true];
+
+
+	/*    ORIGINAL - SAVE AS BACKUP
+    	$(".not-clicked").each(function(i, val){
+            allclicked=false;
+    	});
+	*/
+	
+	//check sliders
+	var s17 = document.getElementById("17");
+	if(hasClass(s17, 'not-clicked')) {
+	    sliders[0] = false;
+	}
+
+	var s18 = document.getElementById("18");
+	if(hasClass(s18, 'not-clicked')) {
+	    sliders[1] = false;
+	}
+
+	var s19 = document.getElementById("19");
+	if(hasClass(s19, 'not-clicked')) {
+	    sliders[2] = false;
+	}
+
+	var s20 = document.getElementById("20");
+	if(hasClass(s20, 'not-clicked')) {
+	    sliders[3] = false;
+	}
+
+	var s21 = document.getElementById("21");
+	if(hasClass(s21, 'not-clicked')) {
+	    sliders[4] = false;
+	}
+
+	var s22 = document.getElementById("22");
+	if(hasClass(s22, 'not-clicked')) {
+	    sliders[5] = false;
+	}
+
+	var s23 = document.getElementById("23");
+	if(hasClass(s23, 'not-clicked')) {
+	    sliders[6] = false;
+	}
+
+	var s24 = document.getElementById("24");
+	if(hasClass(s24, 'not-clicked')) {
+	    sliders[7] = false;
+	}
+
+	//check checkboxes
+	if(document.getElementById("check17").checked == false) {
+	    checks[0] = false;
+	}
+	else {
+	    $("#17").removeClass('clicked');
+	    $("#17").addClass('not-clicked');
+	}
+
+	if(document.getElementById("check18").checked == false) {
+	    checks[1] = false;
+	}
+	else {
+	    $("#18").removeClass('clicked');
+	    $("#18").addClass('not-clicked');
+	}
+	   
+	if(document.getElementById("check19").checked == false) {
+	    checks[2] = false;
+	}
+	else {
+	    $("#19").removeClass('clicked');
+	    $("#19").addClass('not-clicked');
+	}
+
+	if(document.getElementById("check20").checked == false) {
+	    checks[3] = false;
+	}
+	else {
+	    $("#20").removeClass('clicked');
+	    $("#20").addClass('not-clicked');
+	}
+
+	if(document.getElementById("check21").checked == false) {
+	    checks[4] = false;
+	}
+	else {
+	    $("#21").removeClass('clicked');
+	    $("#21").addClass('not-clicked');
+	}
+
+	if(document.getElementById("check22").checked == false) {
+	    checks[5] = false;
+	}
+	else {
+	    $("#22").removeClass('clicked');
+	    $("#22").addClass('not-clicked');
+	}
+
+	if(document.getElementById("check23").checked == false) {
+	    checks[6] = false;
+	}
+	else {
+	    $("#23").removeClass('clicked');
+	    $("#23").addClass('not-clicked');
+	}
+
+	if(document.getElementById("check24").checked == false) {
+	    checks[7] = false;
+	}
+	else {
+	    $("#24").removeClass('clicked');
+	    $("#24").addClass('not-clicked');
+	}
+  
+
+	for(i=0; i<8; i+=1) {
+	    if(sliders[i] == false && checks[i] == false)
+		allclicked = false;
+	}
+		
+        if(allclicked){
+	    $('#next').removeAttr('disabled');	
+        }
+	else {
+	    $('#next').attr('disabled', 'disabled');			   
+	}
+    }// end of checkenable
+
+    var cards;
+    
+    $(document).ready(function() {
+	cards = $(".row-question");
+
+	console.log("cards created");
+	$(".row-question").each(function() {
+	    console.log("element");
+	});
+    
+	for(var i = 0; i < cards.length; i++) {
+	    console.log("randomizing round " + i);
+	    var target = Math.floor(Math.random() * cards.length -1) + 1;
+	    var target2 = Math.floor(Math.random() * cards.length -1) +1;
+	    cards.eq(target).before(cards.eq(target2));
+	}
+    });  
+    
+    $(".not-clicked").click(function(e){
+	$(this).removeClass('not-clicked');
+	$(this).addClass('clicked');
+        checkenable();
+    });
+
+    $(".check").click(function(e){
+	checkenable();
+    });
+
+    window.scrollTo(0, 0);
+    psiTurk.recordTrialData({'phase':'mdmt_honey', 'status':'begin'});
+
+    $("#next").click(function () {
+        record_responses();
+	iter += 1;
+	
+	if(iter >= 4){
+	    currentview = new CheckQuestion();
+	}
+        else if(square_conditions[iter] == 0){
+	    currentview = new mdmt_bumble();
+	}
+	else if(square_conditions[iter] == 1){
+	    currentview = new mdmt_honey();
+	}
+	else if(square_conditions[iter] == 2){
+	    currentview = new mdmt_purple();
+	}
+	else if(square_conditions[iter] == 3){
+	    currentview = new mdmt_yellow();
+	}	    
+    });
+    
+};
+
+
+
+
+/*****************
+ * MDMT - Purple *
+ *****************/
+ 
+var mdmt_purple = function() {   
+    
+    var error_message = "<h1>Oops!</h1><p>Something went wrong submitting your HIT. This might happen if you lose your internet connection. Press the button to resubmit.</p><button id='resubmit'>Resubmit</button>";
+
+    record_responses = function() {
+        psiTurk.recordTrialData({'phase':'mdmt_purple', 'status':'submit'});
+        for(i=25; i<=32; i++){
+	    var variable = document.getElementById(i);
+	    if(hasClass(variable, 'not-clicked')) {
+		psiTurk.recordUnstructuredData("mdmt_purple_checkbox_"+(i-24),$("input[name='"+(i+100)+"']").val());
+	    }
+	    else {
+		psiTurk.recordUnstructuredData("mdmt_purple_"+(i-24),$("input[name='"+i+"']").val());
+	    }
+	    
+        }	
+    };
+
+    prompt_resubmit = function() {
+        replaceBody(error_message);
+        $("#resubmit").click(resubmit);
+    };
+
+    resubmit = function() {
+	replaceBody("<h1>Trying to resubmit...</h1>");
+	reprompt = setTimeout(prompt_resubmit, 10000);
+	
+	psiTurk.saveData({
+	    success: function() {
+		clearInterval(reprompt);                
+	    }, 
+	    error: prompt_resubmit
+	});
+    };
+
+    
+    // Load the questionnaire snippet 
+    psiTurk.showPage('mdmt_purple.html');
+
+    function hasClass(element, cls) {
+        return (' ' + element.className + ' ').indexOf(' ' + cls + ' ') > -1;
+    }
+
+    
+    
+    function checkenable(){
+        allclicked=true;
+	var sliders = [true, true, true, true, true, true, true, true];
+   	var checks  = [true, true, true, true, true, true, true, true];
+
+
+	/*   ORIGINAL - SAVE AS BACKUP
+    	$(".not-clicked").each(function(i, val){
+            allclicked=false;
+    	}); */
+	
+
+	//check sliders
+	var s25 = document.getElementById("25");
+	if(hasClass(s25, 'not-clicked')) {
+	    sliders[0] = false;
+	}
+
+	var s26 = document.getElementById("26");
+	if(hasClass(s26, 'not-clicked')) {
+	    sliders[1] = false;
+	}
+
+	var s27 = document.getElementById("27");
+	if(hasClass(s27, 'not-clicked')) {
+	    sliders[2] = false;
+	}
+
+	var s28 = document.getElementById("28");
+	if(hasClass(s28, 'not-clicked')) {
+	    sliders[3] = false;
+	}
+
+	var s29 = document.getElementById("29");
+	if(hasClass(s29, 'not-clicked')) {
+	    sliders[4] = false;
+	}
+
+	var s30 = document.getElementById("30");
+	if(hasClass(s30, 'not-clicked')) {
+	    sliders[5] = false;
+	}
+
+	var s31 = document.getElementById("31");
+	if(hasClass(s31, 'not-clicked')) {
+	    sliders[6] = false;
+	}
+
+	var s32 = document.getElementById("32");
+	if(hasClass(s32, 'not-clicked')) {
+	    sliders[7] = false;
+	}
+
+	//check checkboxes
+	if(document.getElementById("check25").checked == false) {
+	    checks[0] = false;
+	}
+	else {
+	    $("#25").removeClass('clicked');
+	    $("#25").addClass('not-clicked');
+	}
+
+	if(document.getElementById("check26").checked == false) {
+	    checks[1] = false;
+	}
+	else {
+	    $("#26").removeClass('clicked');
+	    $("#26").addClass('not-clicked');
+	}
+	   
+	if(document.getElementById("check27").checked == false) {
+	    checks[2] = false;
+	}
+	else {
+	    $("#27").removeClass('clicked');
+	    $("#27").addClass('not-clicked');
+	}
+
+	if(document.getElementById("check28").checked == false) {
+	    checks[3] = false;
+	}
+	else {
+	    $("#28").removeClass('clicked');
+	    $("#28").addClass('not-clicked');
+	}
+
+	if(document.getElementById("check29").checked == false) {
+	    checks[4] = false;
+	}
+	else {
+	    $("#29").removeClass('clicked');
+	    $("#29").addClass('not-clicked');
+	}
+
+	if(document.getElementById("check30").checked == false) {
+	    checks[5] = false;
+	}
+	else {
+	    $("#30").removeClass('clicked');
+	    $("#30").addClass('not-clicked');
+	}
+
+	if(document.getElementById("check31").checked == false) {
+	    checks[6] = false;
+	}
+	else {
+	    $("#31").removeClass('clicked');
+	    $("#31").addClass('not-clicked');
+	}
+
+
+	if(document.getElementById("check32").checked == false) {
+	    checks[7] = false;
+	}
+	else {
+	    $("#32").removeClass('clicked');
+	    $("#32").addClass('not-clicked');
+	}
+
+  
+
+	//check either slider or checkbox is clicked
+	for(i=0; i<8; i+=1) {
+	    if(sliders[i] == false && checks[i] == false)
+		allclicked = false;
+	}
+
+	
+        if(allclicked){
+	    $('#next').removeAttr('disabled');	
+        }
+	else {
+	    $('#next').attr('disabled', 'disabled');			   
+	}
+    }// end of checkenable
+
+    
+    var cards;
+    $(document).ready(function() {
+	cards = $(".row-question");
+
+	console.log("cards created");
+	$(".row-question").each(function() {
+	    console.log("element");
+	});
+    
+	for(var i = 0; i < cards.length; i++) {
+	    console.log("randomizing round " + i);
+	    var target = Math.floor(Math.random() * cards.length -1) + 1;
+	    var target2 = Math.floor(Math.random() * cards.length -1) +1;
+	    cards.eq(target).before(cards.eq(target2));
+	}
+    });  
+
+    $(".not-clicked").click(function(e){
+    $(this).removeClass('not-clicked');
+    $(this).addClass('clicked');
+        checkenable();
+    });
+
+    $(".check").click(function(e){
+	checkenable();
+    });
+
+    window.scrollTo(0, 0);
+    psiTurk.recordTrialData({'phase':'mdmt_purple', 'status':'begin'});
+
+    $("#next").click(function () {
+        record_responses();
+	iter += 1;
+	
+	if(iter >= 4){
+	    currentview = new CheckQuestion();
+	}
+        else if(square_conditions[iter] == 0){
+	    currentview = new mdmt_bumble();
+	}
+	else if(square_conditions[iter] == 1){
+	    currentview = new mdmt_honey();
+	}
+	else if(square_conditions[iter] == 2){
+	    currentview = new mdmt_purple();
+	}
+	else if(square_conditions[iter] == 3){
+	    currentview = new mdmt_yellow();
+	}	    
+    });
+};
+
+
+/*****************
+ * MDMT - Yellow *
+ *****************/
+ 
+var mdmt_yellow = function() {   
+    
+    var error_message = "<h1>Oops!</h1><p>Something went wrong submitting your HIT. This might happen if you lose your internet connection. Press the button to resubmit.</p><button id='resubmit'>Resubmit</button>";
+
+    record_responses = function() {
+        psiTurk.recordTrialData({'phase':'mdmt_yellow', 'status':'submit'});
+        for(i=33; i<=40; i++){
+	    var variable = document.getElementById(i);
+	    if(hasClass(variable, 'not-clicked')) {
+		psiTurk.recordUnstructuredData("mdmt_yellow_checkbox_"+(i-32),$("input[name='"+(i+100)+"']").val());
+	    }
+	    else {
+		psiTurk.recordUnstructuredData("mdmt_yellow_"+(i-32),$("input[name='"+i+"']").val());		
+	    }
+        }	
+    };
+
+    prompt_resubmit = function() {
+        replaceBody(error_message);
+        $("#resubmit").click(resubmit);
+    };
+
+    resubmit = function() {
+	replaceBody("<h1>Trying to resubmit...</h1>");
+	reprompt = setTimeout(prompt_resubmit, 10000);
+	
+	psiTurk.saveData({
+	    success: function() {
+		clearInterval(reprompt);                
+	    }, 
+	    error: prompt_resubmit
+	});
+    };
+
+    
+    // Load the questionnaire snippet 
+    psiTurk.showPage('mdmt_yellow.html');
+
+    function hasClass(element, cls) {
+        return (' ' + element.className + ' ').indexOf(' ' + cls + ' ') > -1;
+    }
+
+    
+    
+    function checkenable(){
+	allclicked=true;
+	var sliders = [true, true, true, true, true, true, true, true];
+   	var checks  = [true, true, true, true, true, true, true, true];
+
+
+	/*    ORIGINAL - SAVE AS BACKUP
+    	$(".not-clicked").each(function(i, val){
+            allclicked=false;
+    	});
+	*/
+
+	//check sliders
+	var s33 = document.getElementById("33");
+	if(hasClass(s33, 'not-clicked')) {
+	    sliders[0] = false;
+	}
+
+	var s34 = document.getElementById("34");
+	if(hasClass(s34, 'not-clicked')) {
+	    sliders[1] = false;
+	}
+
+	var s35 = document.getElementById("35");
+	if(hasClass(s35, 'not-clicked')) {
+	    sliders[2] = false;
+	}
+
+	var s36 = document.getElementById("36");
+	if(hasClass(s36, 'not-clicked')) {
+	    sliders[3] = false;
+	}
+
+	var s37 = document.getElementById("37");
+	if(hasClass(s37, 'not-clicked')) {
+	    sliders[4] = false;
+	}
+
+	var s38 = document.getElementById("38");
+	if(hasClass(s38, 'not-clicked')) {
+	    sliders[5] = false;
+	}
+
+	var s39 = document.getElementById("39");
+	if(hasClass(s39, 'not-clicked')) {
+	    sliders[6] = false;
+	}
+
+	var s40 = document.getElementById("40");
+	if(hasClass(s40, 'not-clicked')) {
+	    sliders[7] = false;
+	}
+
+	//check checkboxes
+	if(document.getElementById("check33").checked == false) {
+	    checks[0] = false;
+	}
+	else {
+	    $("#33").removeClass('clicked');
+	    $("#33").addClass('not-clicked');
+	}
+
+
+	if(document.getElementById("check34").checked == false) {
+	    checks[1] = false;
+	}
+	else {
+	    $("#34").removeClass('clicked');
+	    $("#34").addClass('not-clicked');
+	}
+
+	   
+	if(document.getElementById("check35").checked == false) {
+	    checks[2] = false;
+	}
+	else {
+	    $("#35").removeClass('clicked');
+	    $("#35").addClass('not-clicked');
+	}
+
+
+	if(document.getElementById("check36").checked == false) {
+	    checks[3] = false;
+	}
+	else {
+	    $("#36").removeClass('clicked');
+	    $("#36").addClass('not-clicked');
+	}
+
+
+	if(document.getElementById("check37").checked == false) {
+	    checks[4] = false;
+	}
+	else {
+	    $("#37").removeClass('clicked');
+	    $("#37").addClass('not-clicked');
+	}
+
+
+	if(document.getElementById("check38").checked == false) {
+	    checks[5] = false;
+	}
+	else {
+	    $("#38").removeClass('clicked');
+	    $("#38").addClass('not-clicked');
+	}
+
+
+	if(document.getElementById("check39").checked == false) {
+	    checks[6] = false;
+	}
+	else {
+	    $("#39").removeClass('clicked');
+	    $("#39").addClass('not-clicked');
+	}
+
+
+	if(document.getElementById("check40").checked == false) {
+	    checks[7] = false;
+	}
+	else {
+	    $("#40").removeClass('clicked');
+	    $("#40").addClass('not-clicked');
+	}
+
+  
+
+	//check either slider or checkbox is clicked
+	for(i=0; i<8; i+=1) {
+	    if(sliders[i] == false && checks[i] == false)
+		allclicked = false;
+	}
+	
+        if(allclicked){
+	    $('#next').removeAttr('disabled');	
+        }
+	else {
+	    $('#next').attr('disabled', 'disabled');			   
+	}
+    }// end of checkenable
+
+    var cards;  
+    $(document).ready(function() {
+	cards = $(".row-question");
+
+	console.log("cards created");
+	$(".row-question").each(function() {
+	    console.log("element");
+	});
+    
+	for(var i = 0; i < cards.length; i++) {
+	    console.log("randomizing round " + i);
+	    var target = Math.floor(Math.random() * cards.length -1) + 1;
+	    var target2 = Math.floor(Math.random() * cards.length -1) +1;
+	    cards.eq(target).before(cards.eq(target2));
+	}
+    });  
+
+    $(".not-clicked").click(function(e){
+    $(this).removeClass('not-clicked');
+    $(this).addClass('clicked');
+        checkenable();
+    });
+
+    $(".check").click(function(e){
+	checkenable();
+    });
+
+    window.scrollTo(0, 0);
+    psiTurk.recordTrialData({'phase':'mdmt_yellow', 'status':'begin'});
+
+    $("#next").click(function () {
+        record_responses();
+	iter += 1;
+	
+	if(iter >= 4){
+	    currentview = new CheckQuestion();
+	}
+        else if(square_conditions[iter] == 0){
+	    currentview = new mdmt_bumble();
+	}
+	else if(square_conditions[iter] == 1){
+	    currentview = new mdmt_honey();
+	}
+	else if(square_conditions[iter] == 2){
+	    currentview = new mdmt_purple();
+	}
+	else if(square_conditions[iter] == 3){
+	    currentview = new mdmt_yellow();
+	}	    
+    });   
+    
+};
+
+
+
+/*****************
+ * Command Video *
+ *****************/
+var CommandVideo = function() {
+
+    psiTurk.finishInstructions();
+    
+    var error_message = "<h1>Oops!</h1><p>Something went wrong submitting your information. This might happen if you lose your internet connection. Press the button to resubmit.</p><button id='resubmit'>Resubmit</button>";
+
+    var ppcounter = 0;
+    var rscounter = 0;
+
+    record_responses = function() {
+        psiTurk.recordTrialData({'phase':'command_video', 'status':'submit'});	
+    };
+
+    prompt_resubmit = function() {
+        replaceBody(error_message);
+        $("#resubmit").click(resubmit);
+    };
+
+    resubmit = function() {
+        replaceBody("<h1>Trying to resubmit...</h1>");
+        reprompt = setTimeout(prompt_resubmit, 10000);
+        psiTurk.saveData({
+            success: function() {
+                clearInterval(reprompt);
+            },
+            error: prompt_resubmit
+        });
+    };
+    
+    // Load the questionnaire snippet 
+    psiTurk.showPage('command_video.html');
+    window.scrollTo(0, 0);
+    psiTurk.recordTrialData({'phase':'command_video', 'status':'begin'});
+    
+    $("#video3").on('ended', function() {
+        psiTurk.recordTrialData({'phase':'command_video', 'status':'video ended'});
+        $('#next').removeAttr('disabled');
+    });
+    
+    $("#ppbutton").click(function () {
+        psiTurk.recordTrialData({'phase':'command_video', 'status':'play/pause clicked: '+ppcounter});
+        ppcounter += 1;
+    });
+    
+    $("#rsbutton").click(function () {
+        psiTurk.recordTrialData({'phase':'command_video', 'status':'restart clicked: '+rscounter});
+        rscounter += 1;
+    });
+    
+    $("#next").click(function () {
+        record_responses();
+        currentview = new Question2();
+    });
+};
+
+
+
+
+/**************
+ * Question 2 - pre-test 2*
+ **************/
+
+var Question2 = function() {
+    
+    var error_message = "<h1>Oops!</h1><p>Something went wrong submitting your demographic information. This might happen if you lose your internet connection. Press the button to resubmit.</p><button id='resubmit'>Resubmit</button>";
+
+    record_responses = function() {
+        psiTurk.recordTrialData({'phase':'questions2', 'status':'submit'});
+        for(i=1; i<=2; i++){
+            psiTurk.recordUnstructuredData("q2_"+i,$("input[name='"+i+"']").val());
+        }   
+    };
+
+    prompt_resubmit = function() {
+	replaceBody(error_message);
+	$("#resubmit").click(resubmit);
+    };
+
+    resubmit = function() {
+	replaceBody("<h1>Trying to resubmit...</h1>");
+	reprompt = setTimeout(prompt_resubmit, 10000);
+	
+	psiTurk.saveData({
+	    success: function() {
+		clearInterval(reprompt);    
+	    }, 
+	    error: prompt_resubmit
+	});
+    };
+    
+    // Load the questionnaire snippet 
+    psiTurk.showPage('question2.html');
+
+    function hasClass(element, cls) {
+        return (' ' + element.className + ' ').indexOf(' ' + cls + ' ') > -1;
+    }
+
+    function checkenable(){
+        allclicked=true;
+        $(".not-clicked").each(function(i, val){
+            allclicked=false;
+        });
+        if(allclicked){
+        $('#next').removeAttr('disabled');  
+        }
+    }
+
+    $(".not-clicked").click(function(e){
+    $(this).removeClass('not-clicked');
+    $(this).addClass('clicked');
+        checkenable();
+    });
+
+    window.scrollTo(0, 0);
+    psiTurk.recordTrialData({'phase':'questions2', 'status':'begin'});
+
+    $("#next").click(function () {
+        record_responses();
+        currentview = new ResponseVideo();
+    });
+    
+};
+
+
+/******************
+ * Response Video *
+ ******************/
+var ResponseVideo = function() {
+    psiTurk.finishInstructions();
+    
+    var error_message = "<h1>Oops!</h1><p>Something went wrong submitting your information. This might happen if you lose your internet connection. Press the button to resubmit.</p><button id='resubmit'>Resubmit</button>";
+
+    var ppcounter = 0;
+    var rscounter = 0;
+
+    record_responses = function() {
+        psiTurk.recordTrialData({'phase':'response_video', 'status':'submit'});	
+    };
+
+    prompt_resubmit = function() {
+        replaceBody(error_message);
+        $("#resubmit").click(resubmit);
+    };
+
+    resubmit = function() {
+        replaceBody("<h1>Trying to resubmit...</h1>");
+        reprompt = setTimeout(prompt_resubmit, 10000);
+        psiTurk.saveData({
+            success: function() {
+                clearInterval(reprompt);
+            },
+            error: prompt_resubmit
+        });
+    };
+    
+    // Load the questionnaire snippet 
+    psiTurk.showPage('response_video.html');
+    window.scrollTo(0, 0);
+    psiTurk.recordTrialData({'phase':'response_video', 'status':'begin'});
+    
+    //TODO
+    //console.log("mycondition:  " + mycondition);
+    if (mycondition % 4 == 0) {
+        $("#mp4src").attr("src", "/static/videos/associative_building2.mp4")
+        $("#oggsrc").attr("src", "/static/videos/associative_building2.ogg")
+    } 
+    else if (mycondition % 4 == 1) {
+        $("#mp4src").attr("src", "/static/videos/associative_damaging2.mp4")
+        $("#oggsrc").attr("src", "/static/videos/associative_damaging2.ogg")
+    } 
+    else if (mycondition % 4 == 2) {
+        $("#mp4src").attr("src", "/static/videos/dissociative_building2.mp4")
+        $("#oggsrc").attr("src", "/static/videos/dissociative_building2.ogg")
+    }
+    else if (mycondition % 4 == 3) {
+        $("#mp4src").attr("src", "/static/videos/dissociative_damaging2.mp4")
+        $("#oggsrc").attr("src", "/static/videos/dissociative_damaging2.ogg")
+    }/*
+    else if (mycondition==5) {
+        $("#mp4src").attr("src", "/static/videos/P_DSC_5999_rrefro.mp4")
+        $("#oggsrc").attr("src", "/static/videos/P_DSC_5999_rrefro.Ogv")
+    }else{
+        $("#mp4src").attr("src", "/static/videos/P_DSC_6003_rrebro.mp4")
+        $("#oggsrc").attr("src", "/static/videos/P_DSC_6003_rrebro.Ogv")
+    }*/
+
+    $("#video2").load();
+    
+    $("#video2").on('ended', function() {
+        psiTurk.recordTrialData({'phase':'response_video', 'status':'video ended'});
+        $('#next').removeAttr('disabled');
+    });
+    
+    $("#ppbutton").click(function () {
+        psiTurk.recordTrialData({'phase':'response_video', 'status':'play/pause clicked: '+ppcounter});
+        ppcounter += 1;
+    });
+    
+    $("#rsbutton").click(function () {
+        psiTurk.recordTrialData({'phase':'response_video', 'status':'restart clicked: '+rscounter});
+        rscounter += 1;
+    });
+    
+    $("#next").click(function () {
+        record_responses();
+        currentview = new mdmt_associate();
+    });
+};
+
+
+
+
+/***************
+ * Questions 3 - post test*
+ ***************/
+ 
+var Questions3 = function() {   
+    
+    var error_message = "<h1>Oops!</h1><p>Something went wrong submitting your HIT. This might happen if you lose your internet connection. Press the button to resubmit.</p><button id='resubmit'>Resubmit</button>";
+
+    record_responses = function() {
+        psiTurk.recordTrialData({'phase':'questions3', 'status':'submit'});
+        for(i=1; i<=28; i++){
+            psiTurk.recordUnstructuredData("q3_"+i,$("input[name='"+i+"']").val());
+        }
+    };
+
+    prompt_resubmit = function() {
+    replaceBody(error_message);
+    $("#resubmit").click(resubmit);
+    };
+
+    resubmit = function() {
+    replaceBody("<h1>Trying to resubmit...</h1>");
+    reprompt = setTimeout(prompt_resubmit, 10000);
+    
+    psiTurk.saveData({
+        success: function() {
+        clearInterval(reprompt);    
+        }, 
+        error: prompt_resubmit
+    });
+    };
+
+    
+    // Load the questionnaire snippet 
+    psiTurk.showPage('question3.html');
+
+   
+    function hasClass(element, cls) {
+        return (' ' + element.className + ' ').indexOf(' ' + cls + ' ') > -1;
+    }
+
+    function checkenable(){
+        allclicked=true;
+        $(".not-clicked").each(function(i, val){
+            allclicked=false;
+        });
+        if(allclicked){
+        $('#next').removeAttr('disabled');  
+        }
+    }
+
+    $(".not-clicked").click(function(e){
+    $(this).removeClass('not-clicked');
+    $(this).addClass('clicked');
+        checkenable();
+    });
+
+    window.scrollTo(0, 0);
+    psiTurk.recordTrialData({'phase':'questions3', 'status':'begin'});
+
+    $("#next").click(function () {
+        record_responses();
+        currentview = new CheckQuestion();
+    });    
+    
+};
+
+
+
+/******************
+ * Check Question *
+ ******************/
+var CheckQuestion = function() {
+
+    psiTurk.finishInstructions();
+    
+    var error_message = "<h1>Oops!</h1><p>Something went wrong submitting your information. This might happen if you lose your internet connection. Press the button to resubmit.</p><button id='resubmit'>Resubmit</button>";
+
+    record_responses = function() {
+
+	psiTurk.recordTrialData({'phase':'checkquestion', 'status':'submit'});
+
+	var radio_groups = {}
+	$(":radio").each(function(i, val){
+	    radio_groups[this.name] = true;
+	})
+
+	    for(group in radio_groups){
+	        //psiTurk.recordUnstructuredData(group,$(":radio[name='"+group+"']:checked").val());
+		psiTurk.recordUnstructuredData("final_check_question",$(":radio[name='"+group+"']:checked").val());
+		
+	    }
+
+    };
+
+    prompt_resubmit = function() {
+	replaceBody(error_message);
+	$("#resubmit").click(resubmit);
+    };
+
+    resubmit = function() {
+	replaceBody("<h1>Trying to resubmit...</h1>");
+	reprompt = setTimeout(prompt_resubmit, 10000);
+	
+	psiTurk.saveData({
+	    success: function() {
+		clearInterval(reprompt); 
+                
+	    }, 
+	    error: prompt_resubmit
+	});
+    };
+    
+    // Load the questionnaire snippet 
+    psiTurk.showPage('check_question.html');
+    window.scrollTo(0, 0);
+    psiTurk.recordTrialData({'phase':'checkquestion', 'status':'begin'});
+    
+    $("input[name=check]").change(function(){
+	$('#next').removeAttr('disabled');
+    });
+    
+    
+    $("#next").click(function () {
+    	record_responses();
+	psiTurk.saveData({
+            success: function(){
+                psiTurk.computeBonus('compute_bonus', function() { 
+                    psiTurk.completeHIT(); // when finished saving compute bonus, the quit
+                }); 
+            }, 
+            error: prompt_resubmit});
+    }); 
+};
+
+
+
+/*******************
+ * Run Task
+ ******************/
+$(window).load( function(){
+    psiTurk.doInstructions(
+    	instructionPages, // a list of pages you want to display in sequence
+    	function() { currentview = new DemoQuestionnaire(); } // what you want to do when you are done with instructions
+    );
+});
+
+
+

@@ -1,0 +1,60 @@
+<div id="container-instructions">
+
+	<h1>Final Open Question</h1>
+	<div class="instructions well">
+            <p>
+				<br></b> 
+				Of the two interfaces shown throughout (gifs shown below for reference), which would you prefer to track the components of multiple robots? 
+				
+				Please write at least 1-2 sentences to explain your answer.
+				<br>
+				<textarea id="context" name="context" rows="5" cols="100"></textarea>
+				<div id="countWord"></div>
+				<script type="text/javascript">
+					function count_word( val ){
+						var wom = val.match(/\S+/g);
+						return {
+								words : wom ? wom.length : 0};}
+				var textContent = document.getElementById("context");
+				var showWordCount  = document.getElementById("countWord");
+				</script>
+				<br></b>
+				<br></b>
+			
+				 <style type="text/css">
+					.inline-block-child {
+					  display: inline-block;
+					  vertical-align:top;
+					}
+				 </style> 
+			 
+				<div class='parent'>
+					<div class='child inline-block-child' style="border-right: 2px dotted; padding-right: 20px">
+						<h3>Interface 1</h3>
+						<img id="intf1Gif" src="/static/videos/1_2_instruct.gif" height="700">
+					</div>
+					
+					<div class='child inline-block-child' style="padding-left: 20px" >
+						<h3>Interface 2</h3>
+						<img id="intf2Gif" src="/static/videos/3_instruct.gif" height="700">
+					</div>
+				</div>
+				<br>
+
+
+    <div class="instructionsnav">
+        <div class="row">
+            <div class="col-xs-2">
+            	<!-- no previous button on first screen -->
+            </div>
+            <div class="col-xs-8">
+            </div>
+            <div class="col-xs-2">
+                <button type="button" id="next" value="next" class="btn btn-primary btn-lg continue" disabled="disabled">
+                Complete Task! <span class="glyphicon glyphicon-arrow-right"></span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+</div>

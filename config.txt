@@ -1,0 +1,52 @@
+[HIT Configuration]
+title = HRI033 Interface Evaluation
+description = Answer questions about multi-robot capability tracking interfaces
+amt_keywords = Psychology, Philosophy, Trust, Robot, Robots, Ethics, Language, Interaction
+lifetime = 24
+us_only = true
+approve_requirement = 80
+contact_email_on_error = twilliams@mines.edu
+ad_group = Default psiTurk Robot Ethics
+psiturk_keywords = ethics, robots, trust, interaction
+organization_name = MIRRORLab @ Colorado School of Mines
+browser_exclude_rule = MSIE, mobile, tablet
+allow_repeats = false
+
+[Database Parameters]
+#database_url = sqlite:///clarification.db
+database_url = postgres://uc2fv9cmpckrfj:peb23a7db38fbfe5c069a72b9ae18ab626a2c28bb95bcb33150b8c1ac43405552@c5flugvup2318r.cluster-czrs8kj4isg7.us-east-1.rds.amazonaws.com:5432/d3pdqe3qgat6qc
+table_name = rR_exp_table
+
+[Server Parameters]
+host = 0.0.0.0
+#host = localhost
+port = 22362
+cutoff_time = 60
+logfile = server.log
+loglevel = 2
+debug = false
+login_username = examplename
+login_pw = examplepassword
+threads = 1
+secret_key = 'this is my secret key which is hard to guess, i should change this'
+#certfile = <path_to.crt>
+#keyfile = <path_to.key>
+#adserver_revproxy_host = www.location.of.your.revproxy.sans.protocol.com
+#adserver_revproxy_port = 80 # defaults to 80
+
+[Task Parameters]
+experiment_code_version = 1.0
+num_conds = 4
+num_counters = 1
+
+[Shell Parameters]
+launch_in_sandbox_mode = true
+
+# If you are not using the psiturk ad server, set `use_psiturk_ad_server` to `false` and point `ad_location` to your proxy server <host> and <port>. Format the ad_location like this:
+#
+#   https://<host>:<port>/ad
+
+use_psiturk_ad_server = false
+ad_location = https://pacific-dawn-29843-a0f23f3f88ea.herokuapp.com
+
+[psiTurk Access] 
